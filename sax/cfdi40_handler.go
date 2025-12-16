@@ -211,7 +211,7 @@ func (h *CFDI40Handler) transformConcepto(se xml.StartElement) *models.Concepto4
 }
 
 func (h *CFDI40Handler) transformImpuestos(se xml.StartElement, decoder *xml.Decoder, data *models.CFDI40Data) {
-	data.CFDI40.Impuestos.TotalImpuestosTraslados = helpers.GetOrDefault(getAttrValue(se, "TotalImpuestosTrasladados"), h.config.EmptyChar, h.config.SafeNumerics)
+	data.CFDI40.Impuestos.TotalImpuestosTrasladados = helpers.GetOrDefault(getAttrValue(se, "TotalImpuestosTrasladados"), h.config.EmptyChar, h.config.SafeNumerics)
 	data.CFDI40.Impuestos.TotalImpuestosRetenidos = helpers.GetOrDefault(getAttrValue(se, "TotalImpuestosRetenidos"), h.config.EmptyChar, h.config.SafeNumerics)
 
 	// Parse child elements

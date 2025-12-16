@@ -58,7 +58,7 @@ func TestCFDI40Handler_UsePagos20(t *testing.T) {
 }
 
 func TestCFDI40Handler_ParsePagos20FromFile(t *testing.T) {
-	filePath := "recursos/cfdi40_pagos.xml"
+	filePath := "../recursos/cfdi40_pagos.xml"
 
 	t.Run("Parse Pagos20 from file", func(t *testing.T) {
 		handler := sax.NewCFDI40Handler(sax.NewDefaultConfig()).UsePagos20()

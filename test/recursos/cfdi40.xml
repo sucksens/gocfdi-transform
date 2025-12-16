@@ -1,0 +1,21 @@
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd" Version="4.0" Fecha="2025-01-15T10:30:00" Sello="SELLO_DE_EJEMPLO_1234567890_ABCDEFGHIJKLMNOPQRSTUVWXYZ_==" FormaPago="03" NoCertificado="30001000000300023788" Certificado="CERTIFICADO_DE_EJEMPLO_ABCDEF1234567890_==" SubTotal="1000.00" Moneda="MXN" Total="1160.00" TipoDeComprobante="I" Exportacion="01" MetodoPago="PUE" LugarExpedicion="01000" Serie="AAA" Folio="12345">
+    <cfdi:Emisor Rfc="AAA010101AAA" Nombre="EMISOR DE PRUEBA SA DE CV" RegimenFiscal="601"/>
+    <cfdi:Receptor Rfc="XAXX010101000" Nombre="PUBLICO EN GENERAL" DomicilioFiscalReceptor="01000" RegimenFiscalReceptor="616" UsoCFDI="G03"/>
+    <cfdi:Conceptos>
+        <cfdi:Concepto ClaveProdServ="84111506" Cantidad="1" ClaveUnidad="ACT" Descripcion="SERVICIO DE EJEMPLO" ValorUnitario="1000" Importe="1000" ObjetoImp="02">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="1000.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="160.00"/>
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+    </cfdi:Conceptos>
+    <cfdi:Impuestos TotalImpuestosTrasladados="160.00">
+        <cfdi:Traslados>
+            <cfdi:Traslado Base="1000.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="160.00"/>
+        </cfdi:Traslados>
+    </cfdi:Impuestos>
+    <cfdi:Complemento>
+        <tfd:TimbreFiscalDigital xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" xsi:schemaLocation="http://www.sat.gob.mx/TimbreFiscalDigital http://www.sat.gob.mx/sitio_internet/cfd/TimbreFiscalDigital/TimbreFiscalDigitalv11.xsd" Version="1.1" UUID="a3c6a0d7-8f4b-4e2a-9b5c-1d8e9f7a6b2c" FechaTimbrado="2025-01-15T10:30:01" RfcProvCertif="AAA010101AAA" SelloCFD="SELLO_CFD_DE_EJEMPLO_1234567890_==" NoCertificadoSAT="30001000000300023789" SelloSAT="SELLO_SAT_DE_EJEMPLO_1234567890_=="/>
+    </cfdi:Complemento>
+</cfdi:Comprobante>

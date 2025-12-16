@@ -85,10 +85,10 @@ type Terceros struct {
 
 // Impuestos es la estructura de datos para los impuestos del CFDI 4.0
 type Impuestos struct {
-	TotalImpuestosTraslados string      `json:"total_impuestos_traslados"`
-	TotalImpuestosRetenidos string      `json:"total_impuestos_retenidos"`
-	Traslados               []Traslado  `json:"traslados"`
-	Retenciones             []Retencion `json:"retenciones"`
+	TotalImpuestosTrasladados string      `json:"total_impuestos_trasladados"`
+	TotalImpuestosRetenidos   string      `json:"total_impuestos_retenidos"`
+	Traslados                 []Traslado  `json:"traslados"`
+	Retenciones               []Retencion `json:"retenciones"`
 }
 
 // Traslado es la estructura de datos para un traslado de impuesto del CFDI 4.0
