@@ -9,6 +9,9 @@ import (
 func TestCFDI40Handler(t *testing.T) {
 	xmlStr := `
 	<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd" Version="4.0" Fecha="2025-01-15T10:30:00" Sello="SELLO_DE_EJEMPLO_1234567890_ABCDEFGHIJKLMNOPQRSTUVWXYZ_==" FormaPago="03" NoCertificado="30001000000300023788" Certificado="CERTIFICADO_DE_EJEMPLO_ABCDEF1234567890_==" SubTotal="1000.00" Moneda="MXN" Total="1160.00" TipoDeComprobante="I" Exportacion="01" MetodoPago="PUE" LugarExpedicion="01000" Serie="AAA" Folio="12345">
+		<cfdi:CfdiRelacionados TipoRelacion="04">
+			<cfdi:CfdiRelacionado UUID="5FB2822E-396D-4725-8521-500FAB000222"/>
+		</cfdi:CfdiRelacionados>
 		<cfdi:Emisor Rfc="AAA010101AAA" Nombre="EMISOR DE PRUEBA SA DE CV" RegimenFiscal="601"/>
 		<cfdi:Receptor Rfc="XAXX010101000" Nombre="PUBLICO EN GENERAL" DomicilioFiscalReceptor="01000" RegimenFiscalReceptor="616" UsoCFDI="G03"/>
 		<cfdi:Conceptos>
@@ -172,6 +175,85 @@ func TestCFDI40Handler(t *testing.T) {
 		if tfd.SelloSAT != "SELLO_SAT_DE_EJEMPLO_1234567890_==" {
 			t.Errorf("Expected TFD SelloSAT mismatch, got %s", tfd.SelloSAT)
 		}
+	})
 
+	t.Run("UseConcepts - Parsea conceptos sin impuestos", func(t *testing.T) {
+		// Habilitamos el parseo de conceptos pero NO de sus impuestos
+		handler := sax.NewCFDI40Handler(sax.NewDefaultConfig()).UseConcepts()
+		data, err := handler.TransformFromString(xmlStr)
+		if err != nil {
+			t.Fatalf("Error inesperado: %v", err)
+		}
+
+		// Validamos que se hayan parseado los conceptos
+		if len(data.CFDI40.Conceptos) == 0 {
+			t.Fatal("Se esperaban conceptos, no se obtuvo ninguno")
+		}
+
+		c := data.CFDI40.Conceptos[0]
+		if c.ClaveProdServ != "84111506" {
+			t.Errorf("Se esperaba ClaveProdServ 84111506, se obtuvo %s", c.ClaveProdServ)
+		}
+		if c.Descripcion != "SERVICIO DE EJEMPLO" {
+			t.Errorf("Se esperaba Descripcion SERVICIO DE EJEMPLO, se obtuvo %s", c.Descripcion)
+		}
+
+		// Validamos que NO se hayan parseado los impuestos del concepto (por defecto)
+		if len(c.Traslados) > 0 {
+			t.Errorf("No se esperaban traslados en el concepto, se obtuvieron %d", len(c.Traslados))
+		}
+	})
+
+	t.Run("UseConceptsWithTaxes - Parsea conceptos con impuestos", func(t *testing.T) {
+		// Habilitamos el parseo de conceptos Y de sus impuestos
+		// Nota: UseConceptsWithTaxes debería usarse junto con UseConcepts
+		handler := sax.NewCFDI40Handler(sax.NewDefaultConfig()).UseConcepts().UseConceptsWithTaxes()
+		data, err := handler.TransformFromString(xmlStr)
+		if err != nil {
+			t.Fatalf("Error inesperado: %v", err)
+		}
+
+		if len(data.CFDI40.Conceptos) == 0 {
+			t.Fatal("Se esperaban conceptos, no se obtuvo ninguno")
+		}
+
+		c := data.CFDI40.Conceptos[0]
+		// Validamos que se hayan parseado los impuestos del concepto
+		if len(c.Traslados) == 0 {
+			t.Fatal("Se esperaban traslados en el concepto, no se obtuvo ninguno")
+		}
+
+		tr := c.Traslados[0]
+		if tr.Base != "1000.00" {
+			t.Errorf("Se esperaba Base de traslado 1000.00, se obtuvo %s", tr.Base)
+		}
+		if tr.Impuesto != "002" {
+			t.Errorf("Se esperaba Impuesto de traslado 002, se obtuvo %s", tr.Impuesto)
+		}
+		if tr.TasaOCuota != "0.160000" {
+			t.Errorf("Se esperaba TasaOCuota de traslado 0.160000, se obtuvo %s", tr.TasaOCuota)
+		}
+	})
+
+	t.Run("UseRelatedCFDIs - Parsea CFDIs relacionados", func(t *testing.T) {
+		// Habilitamos el parseo de CFDIs relacionados
+		handler := sax.NewCFDI40Handler(sax.NewDefaultConfig()).UseRelatedCFDIs()
+		data, err := handler.TransformFromString(xmlStr)
+		if err != nil {
+			t.Fatalf("Error inesperado: %v", err)
+		}
+
+		// Validamos que se hayan parseado los CFDIs relacionados
+		if len(data.CFDI40.CFDIsRelacionados) == 0 {
+			t.Fatal("Se esperaban CFDIs relacionados, no se obtuvo ninguno")
+		}
+
+		rel := data.CFDI40.CFDIsRelacionados[0]
+		if rel.TipoRelacion != "04" {
+			t.Errorf("Se esperaba TipoRelacion 04, se obtuvo %s", rel.TipoRelacion)
+		}
+		if rel.UUID != "5FB2822E-396D-4725-8521-500FAB000222" {
+			t.Errorf("Se esperaba UUID relacionado 5FB2822E-396D-4725-8521-500FAB000222, se obtuvo %s", rel.UUID)
+		}
 	})
 }

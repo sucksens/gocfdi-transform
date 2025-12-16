@@ -114,6 +114,8 @@ func (h *CFDI40Handler) TransformFromString(xmlStr string) (*models.CFDI40Data, 
 			case "Impuestos":
 				if !insideConcepts {
 					h.transformImpuestos(se, decoder, data)
+				} else if h.config.ParseConcepts && h.config.ParseConceptsTaxes && currentConcept != nil {
+					h.transformImpuestosConcepto(se, decoder, currentConcept)
 				}
 
 			case "CfdiRelacionados":
@@ -240,6 +242,42 @@ func (h *CFDI40Handler) transformImpuestos(se xml.StartElement, decoder *xml.Dec
 					Importe:  helpers.GetOrDefault(getAttrValue(t, "Importe"), h.config.EmptyChar, h.config.SafeNumerics),
 				}
 				data.CFDI40.Impuestos.Retenciones = append(data.CFDI40.Impuestos.Retenciones, retencion)
+			}
+
+		case xml.EndElement:
+			if t.Name.Local == "Impuestos" {
+				return
+			}
+		}
+	}
+}
+
+func (h *CFDI40Handler) transformImpuestosConcepto(se xml.StartElement, decoder *xml.Decoder, concept *models.Concepto40) {
+	for {
+		token, err := decoder.Token()
+		if err != nil {
+			return
+		}
+
+		switch t := token.(type) {
+		case xml.StartElement:
+			switch t.Name.Local {
+			case "Traslado":
+				traslado := models.TrasladoConcepto{
+					Base:       helpers.GetOrDefault(getAttrValue(t, "Base"), h.config.EmptyChar, h.config.SafeNumerics),
+					Impuesto:   helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(t, "Impuesto", h.config.EmptyChar)),
+					TipoFactor: helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(t, "TipoFactor", h.config.EmptyChar)),
+					TasaOCuota: helpers.GetOrDefault(getAttrValue(t, "TasaOCuota"), h.config.EmptyChar, h.config.SafeNumerics),
+					Importe:    helpers.GetOrDefault(getAttrValue(t, "Importe"), h.config.EmptyChar, h.config.SafeNumerics),
+				}
+				concept.Traslados = append(concept.Traslados, traslado)
+
+			case "Retencion":
+				retencion := models.RetencionConcepto{
+					Impuesto: helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(t, "Impuesto", h.config.EmptyChar)),
+					Importe:  helpers.GetOrDefault(getAttrValue(t, "Importe"), h.config.EmptyChar, h.config.SafeNumerics),
+				}
+				concept.Retenciones = append(concept.Retenciones, retencion)
 			}
 
 		case xml.EndElement:
