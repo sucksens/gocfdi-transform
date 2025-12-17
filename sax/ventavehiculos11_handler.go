@@ -32,6 +32,9 @@ func (h *VentaVehiculos11Handler) ProcessVentaVehiculosElement(se xml.StartEleme
 
 	for {
 		token, err := decoder.Token()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -49,6 +52,7 @@ func (h *VentaVehiculos11Handler) ProcessVentaVehiculosElement(se xml.StartEleme
 			}
 		}
 	}
+	return data, nil
 }
 
 func (h *VentaVehiculos11Handler) transformBytes(xmlBytes []byte) (*models.VentaVehiculos11Data, error) {
