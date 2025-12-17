@@ -4,9 +4,10 @@ package models
 // CFDI40Data es la estructura de datos para el CFDI 4.0
 // Incluye el CFDI40 y los TFD11 si los hay.
 type CFDI40Data struct {
-	CFDI40  CFDI40        `json:"cfdi40"`
-	TFD11   []TFD11       `json:"tfd11,omitempty"`
-	Pagos20 []Pagos20Data `json:"pagos20,omitempty"`
+	CFDI40           CFDI40                 `json:"cfdi40"`
+	TFD11            []TFD11                `json:"tfd11,omitempty"`
+	Pagos20          []Pagos20Data          `json:"pagos20,omitempty"`
+	VentaVehiculos11 []VentaVehiculos11Data `json:"venta_vehiculos_11,omitempty"`
 }
 
 // CFDI40 es la estructura de datos para el CFDI 4.0

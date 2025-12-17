@@ -9,25 +9,27 @@ import (
 
 // HandlerConfig contiene la configuración para el manejador SAX.
 type HandlerConfig struct {
-	EmptyChar          string
-	SafeNumerics       bool
-	EscDelimiters      string
-	ParseConcepts      bool
-	ParseRelatedCFDIs  bool
-	ParseConceptsTaxes bool
-	ParsePagos20       bool
+	EmptyChar             string
+	SafeNumerics          bool
+	EscDelimiters         string
+	ParseConcepts         bool
+	ParseRelatedCFDIs     bool
+	ParseConceptsTaxes    bool
+	ParsePagos20          bool
+	ParseVentaVehiculos11 bool
 }
 
 // NewDefaultConfig retorna una configuración por defecto para el manejador SAX.
 func NewDefaultConfig() HandlerConfig {
 	return HandlerConfig{
-		EmptyChar:          "",
-		SafeNumerics:       false,
-		EscDelimiters:      "",
-		ParseConcepts:      false,
-		ParseRelatedCFDIs:  false,
-		ParseConceptsTaxes: false,
-		ParsePagos20:       false,
+		EmptyChar:             "",
+		SafeNumerics:          false,
+		EscDelimiters:         "",
+		ParseConcepts:         false,
+		ParseRelatedCFDIs:     false,
+		ParseConceptsTaxes:    false,
+		ParsePagos20:          false,
+		ParseVentaVehiculos11: false,
 	}
 }
 

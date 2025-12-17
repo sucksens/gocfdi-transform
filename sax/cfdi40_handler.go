@@ -50,6 +50,12 @@ func (h *CFDI40Handler) UsePagos20() *CFDI40Handler {
 	return h
 }
 
+// UseVentaVehiculos11 enables parsing of Venta Vehículos 1.1 complement.
+func (h *CFDI40Handler) UseVentaVehiculos11() *CFDI40Handler {
+	h.config.ParseVentaVehiculos11 = true
+	return h
+}
+
 // TransformFromFile parses a CFDI 4.0 XML file.
 func (h *CFDI40Handler) TransformFromFile(path string) (*models.CFDI40Data, error) {
 	if !strings.HasSuffix(strings.ToLower(path), ".xml") {
@@ -347,6 +353,15 @@ func (h *CFDI40Handler) transformComplemento(decoder *xml.Decoder, data *models.
 				pagosData, err := pagosHandler.ProcessPagosElement(t, decoder)
 				if err == nil && pagosData != nil {
 					data.Pagos20 = append(data.Pagos20, *pagosData)
+				}
+			}
+
+			// Handle VentaVehiculos 1.1
+			if h.config.ParseVentaVehiculos11 && t.Name.Local == "VentaVehiculos" && t.Name.Space == "http://www.sat.gob.mx/ventavehiculos" {
+				ventaVehiculos11Handler := NewVentaVehiculos11Handler(h.config)
+				ventaVehiculos11Data, err := ventaVehiculos11Handler.ProcessVentaVehiculosElement(t, decoder)
+				if err == nil && ventaVehiculos11Data != nil {
+					data.VentaVehiculos11 = append(data.VentaVehiculos11, *ventaVehiculos11Data)
 				}
 			}
 
