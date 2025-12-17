@@ -1,4 +1,4 @@
-package test
+package cfdi40_test
 
 import (
 	"testing"

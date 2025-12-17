@@ -17,6 +17,7 @@ type HandlerConfig struct {
 	ParseConceptsTaxes    bool
 	ParsePagos20          bool
 	ParseVentaVehiculos11 bool
+	ParseNomina12         bool
 }
 
 // NewDefaultConfig retorna una configuración por defecto para el manejador SAX.
@@ -30,6 +31,7 @@ func NewDefaultConfig() HandlerConfig {
 		ParseConceptsTaxes:    false,
 		ParsePagos20:          false,
 		ParseVentaVehiculos11: false,
+		ParseNomina12:         false,
 	}
 }
 

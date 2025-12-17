@@ -8,6 +8,7 @@ type CFDI40Data struct {
 	TFD11            []TFD11                `json:"tfd11,omitempty"`
 	Pagos20          []Pagos20Data          `json:"pagos20,omitempty"`
 	VentaVehiculos11 []VentaVehiculos11Data `json:"venta_vehiculos_11,omitempty"`
+	Nomina12         []Nomina12Data         `json:"nomina_12,omitempty"`
 }
 
 // CFDI40 es la estructura de datos para el CFDI 4.0

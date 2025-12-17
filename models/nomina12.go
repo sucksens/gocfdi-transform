@@ -1,21 +1,21 @@
 package models
 
 type Nomina12Data struct {
-	Version           string               `json:"version"`
-	TipoNomina        string               `json:"tipo_nomina"`
-	FechaPago         string               `json:"fecha_pago"`
-	FechaInicialPago  string               `json:"fecha_inicial_pago"`
-	FechaFinalPago    string               `json:"fecha_final_pago"`
-	NumDiasPagados    string               `json:"num_dias_pagados"`
-	TotalPercepciones string               `json:"total_percepciones,omitempty"`
-	TotalDeducciones  string               `json:"total_deducciones,omitempty"`
-	TotalOtrosPagos   string               `json:"total_otros_pagos,omitempty"`
-	Emisor            Nomina12Emisor       `json:"emisor,omitempty"`
-	Receptor          Nomina12Receptor     `json:"receptor"`
-	Percepciones      Nomina12Percepciones `json:"percepciones,omitempty"`
-	Deducciones       Deducciones          `json:"deducciones,omitempty"`
-	OtrosPagos        OtrosPagos           `json:"otros_pagos,omitempty"`
-	Incapacidades     Incapacidades        `json:"incapacidades,omitempty"`
+	Version           string                `json:"version"`
+	TipoNomina        string                `json:"tipo_nomina"`
+	FechaPago         string                `json:"fecha_pago"`
+	FechaInicialPago  string                `json:"fecha_inicial_pago"`
+	FechaFinalPago    string                `json:"fecha_final_pago"`
+	NumDiasPagados    string                `json:"num_dias_pagados"`
+	TotalPercepciones string                `json:"total_percepciones,omitempty"`
+	TotalDeducciones  string                `json:"total_deducciones,omitempty"`
+	TotalOtrosPagos   string                `json:"total_otros_pagos,omitempty"`
+	Emisor            Nomina12Emisor        `json:"emisor,omitempty"`
+	Receptor          Nomina12Receptor      `json:"receptor"`
+	Percepciones      Nomina12Percepciones  `json:"percepciones,omitempty"`
+	Deducciones       Nomina12Deducciones   `json:"deducciones,omitempty"`
+	OtrosPagos        Nomina12OtrosPagos    `json:"otros_pagos,omitempty"`
+	Incapacidades     Nomina12Incapacidades `json:"incapacidades,omitempty"`
 }
 
 type Nomina12Emisor struct {
@@ -33,7 +33,7 @@ type EntidadSNCF struct {
 type Nomina12Receptor struct {
 	Curp                   string            `json:"curp"`
 	NumSeguridadSocial     string            `json:"num_seguridad_social,omitempty"`
-	FechaIniciaRelLaboral  string            `json:"fecha_inicia_rel_laboral,omitempty"`
+	FechaInicioRelLaboral  string            `json:"fecha_inicio_rel_laboral,omitempty"`
 	Antiguedad             string            `json:"antigüedad,omitempty"`
 	TipoContrato           string            `json:"tipo_contrato,omitempty"`
 	Sindicalizado          string            `json:"sindicalizado,omitempty"`
@@ -110,28 +110,28 @@ type SeparacionIndemnizacion struct {
 	IngresoNoAcumulable string `json:"ingreso_no_acumulable"`
 }
 
-// Deducciones representa las deducciones de nómina.
-type Deducciones struct {
-	TotalOtrasDeducciones   string      `json:"total_otras_deducciones,omitempty"`
-	TotalImpuestosRetenidos string      `json:"total_impuestos_retenidos,omitempty"`
-	Deduccion               []Deduccion `json:"deduccion"`
+// Nomina12Deducciones representa las deducciones de nómina.
+type Nomina12Deducciones struct {
+	TotalOtrasDeducciones   string              `json:"total_otras_deducciones,omitempty"`
+	TotalImpuestosRetenidos string              `json:"total_impuestos_retenidos,omitempty"`
+	Deduccion               []Nomina12Deduccion `json:"deduccion"`
 }
 
-// Deduccion representa una deducción individual.
-type Deduccion struct {
+// Nomina12Deduccion representa una deducción individual.
+type Nomina12Deduccion struct {
 	TipoDeduccion string `json:"tipo_deduccion"`
 	Clave         string `json:"clave"`
 	Concepto      string `json:"concepto"`
 	Importe       string `json:"importe"`
 }
 
-// OtrosPagos representa otros pagos de nómina.
-type OtrosPagos struct {
-	OtroPago []OtroPago `json:"otro_pago"`
+// Nomina12OtrosPagos representa otros pagos de nómina.
+type Nomina12OtrosPagos struct {
+	OtroPago []Nomina12OtroPago `json:"otro_pago"`
 }
 
-// OtroPago representa un pago adicional.
-type OtroPago struct {
+// Nomina12OtroPago representa un pago adicional.
+type Nomina12OtroPago struct {
 	TipoOtroPago             string                   `json:"tipo_otro_pago"`
 	Clave                    string                   `json:"clave"`
 	Concepto                 string                   `json:"concepto"`
@@ -152,13 +152,13 @@ type CompensacionSaldosAFavor struct {
 	RemanenteSalFav string `json:"remanente_sal_fav"`
 }
 
-// Incapacidades representa las incapacidades del empleado.
-type Incapacidades struct {
-	Incapacidad []Incapacidad `json:"incapacidad"`
+// Nomina12Incapacidades representa las incapacidades del empleado.
+type Nomina12Incapacidades struct {
+	Incapacidad []Nomina12Incapacidad `json:"incapacidad"`
 }
 
-// Incapacidad representa una incapacidad individual.
-type Incapacidad struct {
+// Nomina12Incapacidad representa una incapacidad individual.
+type Nomina12Incapacidad struct {
 	DiasIncapacidad  string `json:"dias_incapacidad"`
 	TipoIncapacidad  string `json:"tipo_incapacidad"`
 	ImporteMonetario string `json:"importe_monetario,omitempty"`

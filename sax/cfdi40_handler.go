@@ -44,6 +44,12 @@ func (h *CFDI40Handler) UseRelatedCFDIs() *CFDI40Handler {
 	return h
 }
 
+// UseNomina12 enables parsing of Nomina 1.2 complement.
+func (h *CFDI40Handler) UseNomina12() *CFDI40Handler {
+	h.config.ParseNomina12 = true
+	return h
+}
+
 // UsePagos20 enables parsing of Pagos 2.0 complement.
 func (h *CFDI40Handler) UsePagos20() *CFDI40Handler {
 	h.config.ParsePagos20 = true
@@ -345,6 +351,15 @@ func (h *CFDI40Handler) transformComplemento(decoder *xml.Decoder, data *models.
 					SelloSAT:         helpers.CompactString(h.config.EscDelimiters, getAttrValue(t, "SelloSAT")),
 				}
 				data.TFD11 = append(data.TFD11, tfd)
+			}
+
+			// Handle Nomina 1.2
+			if h.config.ParseNomina12 && t.Name.Local == "Nomina" && t.Name.Space == "http://www.sat.gob.mx/nomina12" {
+				nomina12Handler := NewNomina12Handler(h.config)
+				nomina12Data, err := nomina12Handler.ProcessNomina12Element(t, decoder)
+				if err == nil && nomina12Data != nil {
+					data.Nomina12 = append(data.Nomina12, *nomina12Data)
+				}
 			}
 
 			// Handle Pagos 2.0
