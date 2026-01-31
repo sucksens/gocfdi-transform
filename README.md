@@ -11,7 +11,8 @@ Este proyecto fue inspirado por [pycfdi-transform](https://github.com/swsapien/p
 - Soporte para complementos:
     - **Nómina 1.2**
     - **Pagos 2.0**
-    - **Venta de Vehículos**
+    - **Venta de Vehículos 1.1**
+    - **Impuestos Locales 1.0**
 
 ## Instalación
 
@@ -82,6 +83,42 @@ func main() {
 }
 ```
 
+### Habilitar Complemento Impuestos Locales 1.0
+
+Para extraer información del complemento de Impuestos Locales:
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/sucksens/gocfdi-transform/sax"
+)
+
+func main() {
+	// Habilitar el complemento de Impuestos Locales 1.0
+	handler := sax.NewCFDI40Handler(sax.NewDefaultConfig()).UseImpuestosLocales()
+
+	data, err := handler.TransformFromFile("factura_implocal.xml")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if len(data.ImpuestosLocales) > 0 {
+		impLoc := data.ImpuestosLocales[0]
+		fmt.Printf("Total Retenciones: %s\n", impLoc.TotaldeRetenciones)
+		fmt.Printf("Total Traslados: %s\n", impLoc.TotaldeTraslados)
+
+		for _, retencion := range impLoc.RetencionesLocales {
+			fmt.Printf("Retención - Impuesto: %s, Tasa: %s, Importe: %s\n",
+				retencion.ImpLocRetenido, retencion.TasadeRetencion, retencion.Importe)
+		}
+	}
+}
+```
+
 ## Estructura de Datos (Referencia 4.0)
 
 A continuación se muestra una representación JSON de cómo se ve una estructura `CFDI40Data` completa (habilitando todos los complementos soportados):
@@ -138,18 +175,39 @@ A continuación se muestra una representación JSON de cómo se ve una estructur
           "receptor": { "num_empleado": "123", "puesto": "DESAROLLADOR" }
       }
   ],
-  "pagos20": [
-      {
-          "totales": { "monto_total_pagos": "500.00" },
-          "pagos": [
-              {
-                  "fecha_pago": "2023-01-10T10:00:00",
-                  "forma_de_pago_p": "03",
-                  "monto": "500.00"
-              }
-          ]
-      }
-  ]
+   "pagos20": [
+       {
+           "totales": { "monto_total_pagos": "500.00" },
+           "pagos": [
+               {
+                   "fecha_pago": "2023-01-10T10:00:00",
+                   "forma_de_pago_p": "03",
+                   "monto": "500.00"
+               }
+           ]
+       }
+   ],
+   "impuestos_locales": [
+       {
+           "version": "1.0",
+           "total_de_retenciones": "1357.80",
+           "total_de_traslados": "1578.24",
+           "retenciones_locales": [
+               {
+                   "imp_loc_retenido": "Impuesto Estatal sobre Nómina",
+                   "tasa_de_retencion": "2.00",
+                   "importe": "678.90"
+               }
+           ],
+           "traslados_locales": [
+               {
+                   "imp_loc_trasladado": "Impuesto Estatal",
+                   "tasa_de_traslado": "3.00",
+                   "importe": "789.12"
+               }
+           ]
+       }
+   ]
 }
 ```
 
@@ -164,10 +222,8 @@ Tabla de soporte de versiones de CFDI y complementos:
 | **Nómina** | 1.2 | ✅ Implementado |
 | **Pagos** | 2.0 | ✅ Implementado |
 | **Venta de Vehículos** | 1.1 | ✅ Implementado |
-| **Carta Porte** | 3.0 / 3.1 | ❌ Pendiente |
-| **Impuestos Locales** | 1.1 | ❌ Pendiente |
-| **Comercio Exterior** | 2.0 | ❌ Pendiente |
-| **Retenciones** | 2.0 | ❌ Pendiente |
+| **Impuestos Locales** | 1.0 | ✅ Implementado |
+| **Carta Porte** | 2.0 | ❌ Pendiente |
 
 
 ## Licencia

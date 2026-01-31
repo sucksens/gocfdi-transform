@@ -19,7 +19,7 @@ import (
 )
 
 // Version of the library
-const Version = "0.1.0"
+const Version = "0.5.0"
 
 // Re-export main types for convenience
 type (

@@ -9,6 +9,7 @@ type CFDI40Data struct {
 	Pagos20          []Pagos20Data          `json:"pagos20,omitempty"`
 	VentaVehiculos11 []VentaVehiculos11Data `json:"venta_vehiculos_11,omitempty"`
 	Nomina12         []Nomina12Data         `json:"nomina_12,omitempty"`
+	ImpuestosLocales []ImpuestosLocales10   `json:"impuestos_locales,omitempty"` // Complemento de Impuestos Locales 1.0 (retenciones y traslados de impuestos estatales/municipales)
 }
 
 // CFDI40 es la estructura de datos para el CFDI 4.0

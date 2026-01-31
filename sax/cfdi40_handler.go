@@ -62,6 +62,23 @@ func (h *CFDI40Handler) UseVentaVehiculos11() *CFDI40Handler {
 	return h
 }
 
+// UseImpuestosLocales habilita el parsing del complemento de Impuestos Locales 1.0.
+//
+// Cuando se llama este método, el handler buscará y parseará el complemento
+// <implocal:ImpuestosLocales> dentro del nodo <cfdi:Complemento> del CFDI.
+//
+// Retorna:
+//   - El mismo handler (para permitir encadenamiento de métodos).
+//
+// Ejemplo:
+//
+//	handler := sax.NewCFDI40Handler(sax.NewDefaultConfig()).UseImpuestosLocales()
+//	data, err := handler.TransformFromFile("factura.xml")
+func (h *CFDI40Handler) UseImpuestosLocales() *CFDI40Handler {
+	h.config.ParseImpuestosLocales = true
+	return h
+}
+
 // TransformFromFile parses a CFDI 4.0 XML file.
 func (h *CFDI40Handler) TransformFromFile(path string) (*models.CFDI40Data, error) {
 	if !strings.HasSuffix(strings.ToLower(path), ".xml") {
@@ -377,6 +394,17 @@ func (h *CFDI40Handler) transformComplemento(decoder *xml.Decoder, data *models.
 				ventaVehiculos11Data, err := ventaVehiculos11Handler.ProcessVentaVehiculosElement(t, decoder)
 				if err == nil && ventaVehiculos11Data != nil {
 					data.VentaVehiculos11 = append(data.VentaVehiculos11, *ventaVehiculos11Data)
+				}
+			}
+
+			// Handle ImpuestosLocales 1.0
+			if h.config.ParseImpuestosLocales && t.Name.Local == "ImpuestosLocales" && t.Name.Space == "http://www.sat.gob.mx/implocal" {
+				impLocHandler := NewImpuestosLocales10Handler(h.config)
+				// Procesar el elemento usando el decoder existente del CFDI
+				impLocData, err := impLocHandler.ProcessImpuestosLocalesElement(t, decoder)
+				// Agregar los datos parseados si no hubo errores
+				if err == nil && impLocData != nil {
+					data.ImpuestosLocales = append(data.ImpuestosLocales, *impLocData)
 				}
 			}
 

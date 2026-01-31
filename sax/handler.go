@@ -1,4 +1,3 @@
-// Package sax contiene los manejadores SAX-like para parsear documentos XML CFDI.
 package sax
 
 import (
@@ -18,6 +17,7 @@ type HandlerConfig struct {
 	ParsePagos20          bool
 	ParseVentaVehiculos11 bool
 	ParseNomina12         bool
+	ParseImpuestosLocales bool // Indica si se debe parsear el complemento de Impuestos Locales 1.0
 }
 
 // NewDefaultConfig retorna una configuración por defecto para el manejador SAX.
@@ -32,6 +32,7 @@ func NewDefaultConfig() HandlerConfig {
 		ParsePagos20:          false,
 		ParseVentaVehiculos11: false,
 		ParseNomina12:         false,
+		ParseImpuestosLocales: false,
 	}
 }
 
