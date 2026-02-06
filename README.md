@@ -225,7 +225,6 @@ Tabla de soporte de versiones de CFDI y complementos:
 | **Pagos** | 2.0 | ✅ Implementado |
 | **Venta de Vehículos** | 1.1 | ✅ Implementado |
 | **Impuestos Locales** | 1.0 | ✅ Implementado |
-| **Carta Porte** | 2.0 | ❌ Pendiente |
 
 
 ## Licencia
