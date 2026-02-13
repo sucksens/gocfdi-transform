@@ -9,7 +9,7 @@ import (
 // ElementProcessor es una funcion que procesa un elemento StartElement
 // Recibe el elemento y el decoder XML, permitiendo procesamiento personalizado.
 // Si retorna un error, el procesamiento se detiene.
-type ElementProcessor func(se xml.StartElement, decoder *xml.Decoder)
+type ElementProcessor func(se xml.StartElement, decoder *xml.Decoder) error
 
 // ProcessElementUntil procesa un elemento StartElement hasta llegar al elemento endElement esperado
 func ProcessElementUntil(decoder *xml.Decoder, endElement string, processor ElementProcessor) error {
