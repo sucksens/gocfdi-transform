@@ -60,53 +60,21 @@ func (h *ImpuestosLocales10Handler) ProcessImpuestosLocalesElement(se xml.StartE
 
 // TransformFromString parsea una cadena XML que contiene un complemento de ImpuestosLocales.
 func (h *ImpuestosLocales10Handler) TransformFromString(xmlStr string) (*models.ImpuestosLocales10, error) {
-	// Inicializar estructura de datos
-	data := &models.ImpuestosLocales10{
-		RetencionesLocales: []models.RetencionLocal10{},
-		TrasladosLocales:   []models.TrasladoLocal10{},
-	}
-
 	// Crear decoder XML para parsear la cadena
 	decoder := xml.NewDecoder(strings.NewReader(xmlStr))
+	se, err := FindElement(decoder, "ImpuestosLocales")
 
-	// Buscar el elemento principal
-	for {
-		token, err := decoder.Token()
+	if err != nil {
+		// Si no se encuentra el elemento, retornar estructura vacía
 		if err == io.EOF {
-			break
+			return &models.ImpuestosLocales10{
+				RetencionesLocales: []models.RetencionLocal10{},
+				TrasladosLocales:   []models.TrasladoLocal10{},
+			}, nil
 		}
-		if err != nil {
-			return nil, err
-		}
-		if se, ok := token.(xml.StartElement); ok && se.Name.Local == "ImpuestosLocales" {
-			// Validar versión
-			if err := h.ValidateVersion(se, "1.0"); err != nil {
-				return nil, errors.New("incorrect type of ImpuestosLocales, this handler only supports version 1.0")
-			}
-
-			// Extraer atributos del elemento principal
-			data.Version = "1.0"
-			data.TotaldeRetenciones = h.builder.ExtractNumeric(se, "TotaldeRetenciones")
-			data.TotaldeTraslados = h.builder.ExtractNumeric(se, "TotaldeTraslados")
-
-			err := ProcessChildElements(decoder, "ImpuestosLocales", func(childSE xml.StartElement, childDecoder *xml.Decoder) error {
-				switch childSE.Name.Local {
-				case "RetencionesLocales":
-					// Procesar retención de impuesto local
-					retencion := h.transformRetencionLocalElement(childSE)
-					data.RetencionesLocales = append(data.RetencionesLocales, retencion)
-
-				case "TrasladosLocales":
-					// Procesar traslado de impuesto local
-					traslado := h.transformTrasladoLocalElement(childSE)
-					data.TrasladosLocales = append(data.TrasladosLocales, traslado)
-				}
-				return nil
-			})
-			return data, err
-		}
+		return nil, err
 	}
-	return data, nil
+	return h.ProcessImpuestosLocalesElement(*se, decoder)
 }
 
 // transformRetencionLocalElement extrae los atributos de un elemento RetencionesLocales
