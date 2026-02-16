@@ -50,42 +50,20 @@ func (h *VentaVehiculos11Handler) ProcessVentaVehiculosElement(se xml.StartEleme
 
 // TransformFromString parses a Venta Vehiculos 1.1 XML string.
 func (h *VentaVehiculos11Handler) TransformString(xmlString string) (*models.VentaVehiculos11Data, error) {
-	data := &models.VentaVehiculos11Data{
-		InformacionAduanera: []models.InformacionAduanera{},
-		Partes:              []models.Parte{},
-	}
-
+	//Crear el decoder XML para parsear la cadena
 	decoder := xml.NewDecoder(strings.NewReader(xmlString))
 	// Buscar el elemento VentaVehiculos
-	for {
-		token, err := decoder.Token()
+	se, err := FindElement(decoder, "VentaVehiculos")
+	if err != nil {
 		if err == io.EOF {
-			break
+			return &models.VentaVehiculos11Data{
+				InformacionAduanera: []models.InformacionAduanera{},
+				Partes:              []models.Parte{},
+			}, nil
 		}
-		if err != nil {
-			return nil, err
-		}
-
-		if se, ok := token.(xml.StartElement); ok && se.Name.Local == "VentaVehiculos" {
-			// Extraer atributos del elemento padre
-			data.Version = getAttrValue(se, "Version")
-			data.ClaveVehicular = getAttrValue(se, "ClaveVehicular")
-			data.Niv = getAttrValue(se, "Niv")
-
-			// Procesar elementos hijos
-			err := ProcessChildElements(decoder, "VentaVehiculos", func(childSE xml.StartElement, childDecoder *xml.Decoder) error {
-				switch childSE.Name.Local {
-				case "InformacionAduanera":
-					data.InformacionAduanera = append(data.InformacionAduanera, h.transformInformacionAduanera(childSE))
-				case "Parte":
-					data.Partes = append(data.Partes, h.transformParte(childSE, childDecoder))
-				}
-				return nil
-			})
-			return data, err
-		}
+		return nil, err
 	}
-	return data, nil
+	return h.ProcessVentaVehiculosElement(*se, decoder)
 }
 
 // transformInformacionAduanera transforma el elemento InformacionAduanera
