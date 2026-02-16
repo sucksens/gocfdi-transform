@@ -208,4 +208,189 @@ func TestImpuestosLocales10(t *testing.T) {
 			assert.Equal(t, "0.00", impLoc.RetencionesLocales[0].Importe)
 		}
 	})
+
+	// Test Case 5: Parse standalone ImpuestosLocales XML con TransformFromString directo
+	//
+	// Este test verifica que el método TransformFromString del handler de ImpuestosLocales
+	// funciona correctamente cuando se le pasa un XML que contiene solo el complemento.
+	//
+	// Objetivos:
+	//   - Validar que TransformFromString procesa correctamente el XML independiente
+	//   - Verificar que los atributos principales se extraen correctamente
+	//   - Comprobar que las retenciones y traslados se procesan correctamente
+	t.Run("Parse standalone ImpuestosLocales XML with TransformFromString", func(t *testing.T) {
+		xmlStr := `
+		<implocal:ImpuestosLocales xmlns:implocal="http://www.sat.gob.mx/implocal"
+			version="1.0" TotaldeRetenciones="100.00" TotaldeTraslados="200.00">
+			<implocal:RetencionesLocales ImpLocRetenido="ISR" TasadeRetencion="2.00" Importe="100.00"/>
+			<implocal:TrasladosLocales ImpLocTrasladado="IVA" TasadeTraslado="16.00" Importe="200.00"/>
+		</implocal:ImpuestosLocales>
+		`
+
+		handler := sax.NewImpuestosLocales10Handler(sax.NewDefaultConfig())
+		data, err := handler.TransformFromString(xmlStr)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "1.0", data.Version)
+		assert.Equal(t, "100.00", data.TotaldeRetenciones)
+		assert.Equal(t, "200.00", data.TotaldeTraslados)
+		assert.Len(t, data.RetencionesLocales, 1)
+		assert.Len(t, data.TrasladosLocales, 1)
+
+		// Validar retención
+		r1 := data.RetencionesLocales[0]
+		assert.Equal(t, "ISR", r1.ImpLocRetenido)
+		assert.Equal(t, "2.00", r1.TasadeRetencion)
+		assert.Equal(t, "100.00", r1.Importe)
+
+		// Validar traslado
+		t1 := data.TrasladosLocales[0]
+		assert.Equal(t, "IVA", t1.ImpLocTrasladado)
+		assert.Equal(t, "16.00", t1.TasadeTraslado)
+		assert.Equal(t, "200.00", t1.Importe)
+	})
+
+	// Test Case 6: Handle empty XML
+	//
+	// Este test verifica el comportamiento cuando se pasa un XML vacío.
+	//
+	// Objetivos:
+	//   - Validar que no se produce un error con XML vacío
+	//   - Verificar que se retorna una estructura vacía pero válida
+	t.Run("Handle empty XML", func(t *testing.T) {
+		handler := sax.NewImpuestosLocales10Handler(sax.NewDefaultConfig())
+		data, err := handler.TransformFromString("")
+
+		assert.NoError(t, err)
+		assert.NotNil(t, data)
+		assert.Equal(t, "", data.Version)
+		assert.Len(t, data.RetencionesLocales, 0)
+		assert.Len(t, data.TrasladosLocales, 0)
+	})
+
+	// Test Case 7: Handle XML without ImpuestosLocales element
+	//
+	// Este test verifica el comportamiento cuando el XML no contiene el elemento ImpuestosLocales.
+	//
+	// Objetivos:
+	//   - Validar que no se produce un error con XML sin el elemento esperado
+	//   - Verificar que se retorna una estructura vacía pero válida
+	t.Run("Handle XML without ImpuestosLocales element", func(t *testing.T) {
+		xmlStr := `<root><element>value</element></root>`
+		handler := sax.NewImpuestosLocales10Handler(sax.NewDefaultConfig())
+		data, err := handler.TransformFromString(xmlStr)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, data)
+		assert.Equal(t, "", data.Version)
+		assert.Len(t, data.RetencionesLocales, 0)
+		assert.Len(t, data.TrasladosLocales, 0)
+	})
+
+	// Test Case 8: Handle incorrect version
+	//
+	// Este test verifica el comportamiento cuando la versión del complemento es incorrecta.
+	//
+	// Objetivos:
+	//   - Validar que se produce un error cuando la versión no es "1.0"
+	//   - Verificar que el mensaje de error es descriptivo
+	t.Run("Handle incorrect version", func(t *testing.T) {
+		xmlStr := `
+		<implocal:ImpuestosLocales xmlns:implocal="http://www.sat.gob.mx/implocal"
+			version="2.0" TotaldeRetenciones="100.00">
+		</implocal:ImpuestosLocales>
+		`
+		handler := sax.NewImpuestosLocales10Handler(sax.NewDefaultConfig())
+		_, err := handler.TransformFromString(xmlStr)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "incorrect type of ImpuestosLocales")
+	})
+
+	// Test Case 9: Handle multiple retenciones and traslados
+	//
+	// Este test verifica el comportamiento cuando hay múltiples retenciones y traslados.
+	//
+	// Objetivos:
+	//   - Validar que se procesan correctamente múltiples elementos del mismo tipo
+	//   - Verificar que el orden se mantiene
+	t.Run("Handle multiple retenciones and traslados", func(t *testing.T) {
+		xmlStr := `
+		<implocal:ImpuestosLocales xmlns:implocal="http://www.sat.gob.mx/implocal"
+			version="1.0" TotaldeRetenciones="300.00" TotaldeTraslados="600.00">
+			<implocal:RetencionesLocales ImpLocRetenido="ISR" TasadeRetencion="2.00" Importe="100.00"/>
+			<implocal:RetencionesLocales ImpLocRetenido="IVA" TasadeRetencion="1.00" Importe="200.00"/>
+			<implocal:TrasladosLocales ImpLocTrasladado="IVA" TasadeTraslado="16.00" Importe="300.00"/>
+			<implocal:TrasladosLocales ImpLocTrasladado="IEPS" TasadeTraslado="8.00" Importe="300.00"/>
+		</implocal:ImpuestosLocales>
+		`
+
+		handler := sax.NewImpuestosLocales10Handler(sax.NewDefaultConfig())
+		data, err := handler.TransformFromString(xmlStr)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "1.0", data.Version)
+		assert.Equal(t, "300.00", data.TotaldeRetenciones)
+		assert.Equal(t, "600.00", data.TotaldeTraslados)
+		assert.Len(t, data.RetencionesLocales, 2)
+		assert.Len(t, data.TrasladosLocales, 2)
+
+		// Validar retenciones en orden
+		assert.Equal(t, "ISR", data.RetencionesLocales[0].ImpLocRetenido)
+		assert.Equal(t, "IVA", data.RetencionesLocales[1].ImpLocRetenido)
+
+		// Validar traslados en orden
+		assert.Equal(t, "IVA", data.TrasladosLocales[0].ImpLocTrasladado)
+		assert.Equal(t, "IEPS", data.TrasladosLocales[1].ImpLocTrasladado)
+	})
+
+	// Test Case 10: Handle only retenciones without traslados
+	//
+	// Este test verifica el comportamiento cuando solo hay retenciones.
+	//
+	// Objetivos:
+	//   - Validar que el parsing funciona con solo retenciones
+	//   - Verificar que el array de traslados está vacío
+	t.Run("Handle only retenciones without traslados", func(t *testing.T) {
+		xmlStr := `
+		<implocal:ImpuestosLocales xmlns:implocal="http://www.sat.gob.mx/implocal"
+			version="1.0" TotaldeRetenciones="100.00" TotaldeTraslados="">
+			<implocal:RetencionesLocales ImpLocRetenido="ISR" TasadeRetencion="2.00" Importe="100.00"/>
+		</implocal:ImpuestosLocales>
+		`
+
+		handler := sax.NewImpuestosLocales10Handler(sax.NewDefaultConfig())
+		data, err := handler.TransformFromString(xmlStr)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "1.0", data.Version)
+		assert.Equal(t, "100.00", data.TotaldeRetenciones)
+		assert.Len(t, data.RetencionesLocales, 1)
+		assert.Len(t, data.TrasladosLocales, 0)
+	})
+
+	// Test Case 11: Handle only traslados without retenciones
+	//
+	// Este test verifica el comportamiento cuando solo hay traslados.
+	//
+	// Objetivos:
+	//   - Validar que el parsing funciona con solo traslados
+	//   - Verificar que el array de retenciones está vacío
+	t.Run("Handle only traslados without retenciones", func(t *testing.T) {
+		xmlStr := `
+		<implocal:ImpuestosLocales xmlns:implocal="http://www.sat.gob.mx/implocal"
+			version="1.0" TotaldeRetenciones="" TotaldeTraslados="200.00">
+			<implocal:TrasladosLocales ImpLocTrasladado="IVA" TasadeTraslado="16.00" Importe="200.00"/>
+		</implocal:ImpuestosLocales>
+		`
+
+		handler := sax.NewImpuestosLocales10Handler(sax.NewDefaultConfig())
+		data, err := handler.TransformFromString(xmlStr)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "1.0", data.Version)
+		assert.Equal(t, "200.00", data.TotaldeTraslados)
+		assert.Len(t, data.RetencionesLocales, 0)
+		assert.Len(t, data.TrasladosLocales, 1)
+	})
 }

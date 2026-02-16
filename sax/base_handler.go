@@ -60,10 +60,13 @@ func (h *BaseHandler) ParseTokens(decoder *xml.Decoder, endElement string, token
 
 // ValidateVersion valida que la version de un elemento Xml sea la esperada
 func (h *BaseHandler) ValidateVersion(se xml.StartElement, expectedVersion string) error {
-	version := getAttrValue(se, "Version")
+	version := getAttrValue(se, "version")
 
 	if version == "" {
-		return fmt.Errorf("missing required attribute: Version")
+		version = getAttrValue(se, "Version")
+	}
+	if version == "" {
+		return fmt.Errorf("missing required attribute: version")
 	}
 	if version != expectedVersion {
 		return fmt.Errorf("incorrect version, expected %s, got %s", expectedVersion, version)
