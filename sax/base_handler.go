@@ -14,8 +14,8 @@ type BaseHandler struct {
 }
 
 // NewBaseHandler crea un nuevo BaseHandler
-func NewBaseHandler(cfg HandlerConfig) *BaseHandler {
-	return &BaseHandler{config: cfg}
+func NewBaseHandler(config HandlerConfig) *BaseHandler {
+	return &BaseHandler{config: config}
 }
 
 // Config retorna la configuracion del handler
