@@ -6,23 +6,21 @@ import (
 	"io"
 	"strings"
 
-	"github.com/sucksens/gocfdi-transform/helpers"
 	"github.com/sucksens/gocfdi-transform/models"
 )
 
 // TFD11Handler handles parsing of Timbre Fiscal Digital 1.1 complement.
 type TFD11Handler struct {
-	config HandlerConfig
+	*BaseHandler
+	builder *ModelBuilder
 }
 
 // NewTFD11Handler creates a new TFD11Handler.
 func NewTFD11Handler(config HandlerConfig) *TFD11Handler {
-	return &TFD11Handler{config: config}
-}
-
-// TransformFromBytes parses a TFD 1.1 XML byte slice.
-func (h *TFD11Handler) TransformFromBytes(xmlBytes []byte) (interface{}, error) {
-	return h.TransformFromString(string(xmlBytes))
+	return &TFD11Handler{
+		BaseHandler: NewBaseHandler(config),
+		builder:     NewModelBuilder(config),
+	}
 }
 
 // TransformFromString parses a TFD 1.1 XML string.
@@ -50,18 +48,17 @@ func (h *TFD11Handler) TransformFromString(xmlStr string) (*models.TFD11, error)
 }
 
 func (h *TFD11Handler) transformTFD(se xml.StartElement) (*models.TFD11, error) {
-	version := getAttrValue(se, "Version")
-	if version != "1.1" {
+	if err := h.ValidateVersion(se, "1.1"); err != nil {
 		return nil, errors.New("incorrect type of TFD, this handler only supports TFD version 1.1")
 	}
 
 	return &models.TFD11{
-		Version:          version,
-		NoCertificadoSAT: getAttrValue(se, "NoCertificadoSAT"),
-		UUID:             strings.ToUpper(getAttrValue(se, "UUID")),
-		FechaTimbrado:    getAttrValue(se, "FechaTimbrado"),
-		RfcProvCert:      getAttrValue(se, "RfcProvCertif"),
-		SelloCFD:         helpers.CompactString(h.config.EscDelimiters, getAttrValue(se, "SelloCFD")),
-		SelloSAT:         helpers.CompactString(h.config.EscDelimiters, getAttrValue(se, "SelloSAT")),
+		Version:          "1.1",
+		NoCertificadoSAT: h.builder.ExtractString(se, "NoCertificadoSAT"),
+		UUID:             h.builder.ExtractUpper(se, "UUID"),
+		FechaTimbrado:    h.builder.ExtractString(se, "FechaTimbrado"),
+		RfcProvCert:      h.builder.ExtractString(se, "RfcProvCertif"),
+		SelloCFD:         h.builder.ExtractCompact(se, "SelloCFD"),
+		SelloSAT:         h.builder.ExtractCompact(se, "SelloSAT"),
 	}, nil
 }

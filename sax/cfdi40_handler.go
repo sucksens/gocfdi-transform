@@ -8,21 +8,22 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sucksens/gocfdi-transform/helpers"
 	"github.com/sucksens/gocfdi-transform/models"
 )
 
 // CFDI40Handler handles parsing of CFDI 4.0 XML documents.
 type CFDI40Handler struct {
-	config      HandlerConfig
+	*BaseHandler
 	complements ComplementRegistry
+	builder     *ModelBuilder
 }
 
 // NewCFDI40Handler creates a new CFDI40Handler with the given configuration.
-func NewCFDI40Handler(cfg HandlerConfig) *CFDI40Handler {
+func NewCFDI40Handler(config HandlerConfig) *CFDI40Handler {
 	return &CFDI40Handler{
-		config:      cfg,
+		BaseHandler: NewBaseHandler(config),
 		complements: DefaultCFDI40Complements(),
+		builder:     NewModelBuilder(config),
 	}
 }
 
@@ -63,17 +64,6 @@ func (h *CFDI40Handler) UseVentaVehiculos11() *CFDI40Handler {
 }
 
 // UseImpuestosLocales habilita el parsing del complemento de Impuestos Locales 1.0.
-//
-// Cuando se llama este método, el handler buscará y parseará el complemento
-// <implocal:ImpuestosLocales> dentro del nodo <cfdi:Complemento> del CFDI.
-//
-// Retorna:
-//   - El mismo handler (para permitir encadenamiento de métodos).
-//
-// Ejemplo:
-//
-//	handler := sax.NewCFDI40Handler(sax.NewDefaultConfig()).UseImpuestosLocales()
-//	data, err := handler.TransformFromFile("factura.xml")
 func (h *CFDI40Handler) UseImpuestosLocales() *CFDI40Handler {
 	h.config.ParseImpuestosLocales = true
 	return h
@@ -181,261 +171,198 @@ func (h *CFDI40Handler) TransformFromString(xmlStr string) (*models.CFDI40Data, 
 }
 
 func (h *CFDI40Handler) transformComprobante(se xml.StartElement, data *models.CFDI40Data) error {
-	version := getAttrValue(se, "Version")
-	if version != "4.0" {
+	if err := h.ValidateVersion(se, "4.0"); err != nil {
 		return errors.New("incorrect type of CFDI, this handler only supports CFDI version 4.0")
 	}
 
-	data.CFDI40.Version = version
-	data.CFDI40.Serie = helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(se, "Serie", h.config.EmptyChar))
-	data.CFDI40.Folio = helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(se, "Folio", h.config.EmptyChar))
-	data.CFDI40.Fecha = getAttrValue(se, "Fecha")
-	data.CFDI40.NoCertificado = getAttrValue(se, "NoCertificado")
-	data.CFDI40.SubTotal = getAttrValue(se, "SubTotal")
-	data.CFDI40.Descuento = helpers.GetOrDefault(getAttrValue(se, "Descuento"), h.config.EmptyChar, h.config.SafeNumerics)
-	data.CFDI40.Total = getAttrValue(se, "Total")
-	data.CFDI40.Moneda = getAttrValue(se, "Moneda")
-	data.CFDI40.TipoCambio = helpers.GetOrDefaultOne(getAttrValue(se, "TipoCambio"), h.config.EmptyChar, h.config.SafeNumerics)
-	data.CFDI40.TipoComprobante = getAttrValue(se, "TipoDeComprobante")
-	data.CFDI40.MetodoPago = helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(se, "MetodoPago", h.config.EmptyChar))
-	data.CFDI40.FormaPago = helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(se, "FormaPago", h.config.EmptyChar))
-	data.CFDI40.CondicionesPago = helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(se, "CondicionesDePago", h.config.EmptyChar))
-	data.CFDI40.LugarExpedicion = getAttrValue(se, "LugarExpedicion")
-	data.CFDI40.Exportacion = getAttrValue(se, "Exportacion")
-	data.CFDI40.Sello = helpers.CompactString(h.config.EscDelimiters, getAttrValue(se, "Sello"))
-	data.CFDI40.Certificado = helpers.CompactString(h.config.EscDelimiters, getAttrValue(se, "Certificado"))
-	data.CFDI40.Confirmacion = getAttrValueOrDefault(se, "Confirmacion", h.config.EmptyChar)
+	data.CFDI40.Version = "4.0"
+	data.CFDI40.Serie = h.builder.ExtractCompact(se, "Serie")
+	data.CFDI40.Folio = h.builder.ExtractCompact(se, "Folio")
+	data.CFDI40.Fecha = h.builder.ExtractString(se, "Fecha")
+	data.CFDI40.NoCertificado = h.builder.ExtractString(se, "NoCertificado")
+	data.CFDI40.SubTotal = h.builder.ExtractString(se, "SubTotal")
+	data.CFDI40.Descuento = h.builder.ExtractNumeric(se, "Descuento")
+	data.CFDI40.Total = h.builder.ExtractString(se, "Total")
+	data.CFDI40.Moneda = h.builder.ExtractString(se, "Moneda")
+	data.CFDI40.TipoCambio = h.builder.ExtractNumericOne(se, "TipoCambio")
+	data.CFDI40.TipoComprobante = h.builder.ExtractString(se, "TipoDeComprobante")
+	data.CFDI40.MetodoPago = h.builder.ExtractCompact(se, "MetodoPago")
+	data.CFDI40.FormaPago = h.builder.ExtractCompact(se, "FormaPago")
+	data.CFDI40.CondicionesPago = h.builder.ExtractCompact(se, "CondicionesDePago")
+	data.CFDI40.LugarExpedicion = h.builder.ExtractString(se, "LugarExpedicion")
+	data.CFDI40.Exportacion = h.builder.ExtractString(se, "Exportacion")
+	data.CFDI40.Sello = h.builder.ExtractCompact(se, "Sello")
+	data.CFDI40.Certificado = h.builder.ExtractCompact(se, "Certificado")
+	data.CFDI40.Confirmacion = h.builder.ExtractStringOrDefault(se, "Confirmacion")
 
 	return nil
 }
 
 func (h *CFDI40Handler) transformEmisor(se xml.StartElement, data *models.CFDI40Data) {
-	data.CFDI40.Emisor.RFC = getAttrValue(se, "Rfc")
-	data.CFDI40.Emisor.Nombre = helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(se, "Nombre", h.config.EmptyChar))
-	data.CFDI40.Emisor.RegimenFiscal = getAttrValue(se, "RegimenFiscal")
-	data.CFDI40.Emisor.FacAtrAdquirente = helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(se, "FacAtrAdquirente", h.config.EmptyChar))
+	data.CFDI40.Emisor.RFC = h.builder.ExtractString(se, "Rfc")
+	data.CFDI40.Emisor.Nombre = h.builder.ExtractCompact(se, "Nombre")
+	data.CFDI40.Emisor.RegimenFiscal = h.builder.ExtractString(se, "RegimenFiscal")
+	data.CFDI40.Emisor.FacAtrAdquirente = h.builder.ExtractCompact(se, "FacAtrAdquirente")
 }
 
 func (h *CFDI40Handler) transformReceptor(se xml.StartElement, data *models.CFDI40Data) {
-	data.CFDI40.Receptor.RFC = getAttrValue(se, "Rfc")
-	data.CFDI40.Receptor.Nombre = helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(se, "Nombre", h.config.EmptyChar))
-	data.CFDI40.Receptor.DomicilioFiscalReceptor = getAttrValue(se, "DomicilioFiscalReceptor")
-	data.CFDI40.Receptor.ResidenciaFiscal = getAttrValueOrDefault(se, "ResidenciaFiscal", h.config.EmptyChar)
-	data.CFDI40.Receptor.NumRegIdTrib = helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(se, "NumRegIdTrib", h.config.EmptyChar))
-	data.CFDI40.Receptor.RegimenFiscalReceptor = getAttrValue(se, "RegimenFiscalReceptor")
-	data.CFDI40.Receptor.UsoCFDI = getAttrValue(se, "UsoCFDI")
+	data.CFDI40.Receptor.RFC = h.builder.ExtractString(se, "Rfc")
+	data.CFDI40.Receptor.Nombre = h.builder.ExtractCompact(se, "Nombre")
+	data.CFDI40.Receptor.DomicilioFiscalReceptor = h.builder.ExtractString(se, "DomicilioFiscalReceptor")
+	data.CFDI40.Receptor.ResidenciaFiscal = h.builder.ExtractStringOrDefault(se, "ResidenciaFiscal")
+	data.CFDI40.Receptor.NumRegIdTrib = h.builder.ExtractCompact(se, "NumRegIdTrib")
+	data.CFDI40.Receptor.RegimenFiscalReceptor = h.builder.ExtractString(se, "RegimenFiscalReceptor")
+	data.CFDI40.Receptor.UsoCFDI = h.builder.ExtractString(se, "UsoCFDI")
 }
 
 func (h *CFDI40Handler) transformConcepto(se xml.StartElement) *models.Concepto40 {
 	return &models.Concepto40{
-		ClaveProdServ:    getAttrValue(se, "ClaveProdServ"),
-		NoIdentificacion: helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(se, "NoIdentificacion", h.config.EmptyChar)),
-		Cantidad:         getAttrValue(se, "Cantidad"),
-		ClaveUnidad:      getAttrValue(se, "ClaveUnidad"),
-		Unidad:           helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(se, "Unidad", h.config.EmptyChar)),
-		Descripcion:      helpers.CompactString(h.config.EscDelimiters, getAttrValue(se, "Descripcion")),
-		ValorUnitario:    getAttrValue(se, "ValorUnitario"),
-		Importe:          getAttrValue(se, "Importe"),
-		Descuento:        helpers.GetOrDefault(getAttrValue(se, "Descuento"), h.config.EmptyChar, h.config.SafeNumerics),
-		ObjetoImp:        getAttrValue(se, "ObjetoImp"),
+		ClaveProdServ:    h.builder.ExtractString(se, "ClaveProdServ"),
+		NoIdentificacion: h.builder.ExtractCompact(se, "NoIdentificacion"),
+		Cantidad:         h.builder.ExtractString(se, "Cantidad"),
+		ClaveUnidad:      h.builder.ExtractString(se, "ClaveUnidad"),
+		Unidad:           h.builder.ExtractCompact(se, "Unidad"),
+		Descripcion:      h.builder.ExtractCompact(se, "Descripcion"),
+		ValorUnitario:    h.builder.ExtractString(se, "ValorUnitario"),
+		Importe:          h.builder.ExtractString(se, "Importe"),
+		Descuento:        h.builder.ExtractNumeric(se, "Descuento"),
+		ObjetoImp:        h.builder.ExtractString(se, "ObjetoImp"),
 	}
 }
 
 func (h *CFDI40Handler) transformImpuestos(se xml.StartElement, decoder *xml.Decoder, data *models.CFDI40Data) {
-	data.CFDI40.Impuestos.TotalImpuestosTrasladados = helpers.GetOrDefault(getAttrValue(se, "TotalImpuestosTrasladados"), h.config.EmptyChar, h.config.SafeNumerics)
-	data.CFDI40.Impuestos.TotalImpuestosRetenidos = helpers.GetOrDefault(getAttrValue(se, "TotalImpuestosRetenidos"), h.config.EmptyChar, h.config.SafeNumerics)
+	data.CFDI40.Impuestos.TotalImpuestosTrasladados = h.builder.ExtractNumeric(se, "TotalImpuestosTrasladados")
+	data.CFDI40.Impuestos.TotalImpuestosRetenidos = h.builder.ExtractNumeric(se, "TotalImpuestosRetenidos")
 
-	// Parse child elements
-	for {
-		token, err := decoder.Token()
-		if err != nil {
-			return
-		}
-
-		switch t := token.(type) {
-		case xml.StartElement:
-			switch t.Name.Local {
-			case "Traslado":
-				traslado := models.Traslado{
-					Base:       helpers.GetOrDefault(getAttrValue(t, "Base"), h.config.EmptyChar, h.config.SafeNumerics),
-					Impuesto:   helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(t, "Impuesto", h.config.EmptyChar)),
-					TipoFactor: helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(t, "TipoFactor", h.config.EmptyChar)),
-					TasaOCuota: helpers.GetOrDefault(getAttrValue(t, "TasaOCuota"), h.config.EmptyChar, h.config.SafeNumerics),
-					Importe:    helpers.GetOrDefault(getAttrValue(t, "Importe"), h.config.EmptyChar, h.config.SafeNumerics),
-				}
-				data.CFDI40.Impuestos.Traslados = append(data.CFDI40.Impuestos.Traslados, traslado)
-
-			case "Retencion":
-				retencion := models.Retencion{
-					Impuesto: helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(t, "Impuesto", h.config.EmptyChar)),
-					Importe:  helpers.GetOrDefault(getAttrValue(t, "Importe"), h.config.EmptyChar, h.config.SafeNumerics),
-				}
-				data.CFDI40.Impuestos.Retenciones = append(data.CFDI40.Impuestos.Retenciones, retencion)
+	ProcessChildElements(decoder, "Impuestos", func(childSE xml.StartElement, childDecoder *xml.Decoder) error {
+		switch childSE.Name.Local {
+		case "Traslado":
+			traslado := models.Traslado{
+				Base:       h.builder.ExtractNumeric(childSE, "Base"),
+				Impuesto:   h.builder.ExtractCompact(childSE, "Impuesto"),
+				TipoFactor: h.builder.ExtractCompact(childSE, "TipoFactor"),
+				TasaOCuota: h.builder.ExtractNumeric(childSE, "TasaOCuota"),
+				Importe:    h.builder.ExtractNumeric(childSE, "Importe"),
 			}
+			data.CFDI40.Impuestos.Traslados = append(data.CFDI40.Impuestos.Traslados, traslado)
 
-		case xml.EndElement:
-			if t.Name.Local == "Impuestos" {
-				return
+		case "Retencion":
+			retencion := models.Retencion{
+				Impuesto: h.builder.ExtractCompact(childSE, "Impuesto"),
+				Importe:  h.builder.ExtractNumeric(childSE, "Importe"),
 			}
+			data.CFDI40.Impuestos.Retenciones = append(data.CFDI40.Impuestos.Retenciones, retencion)
 		}
-	}
+		return nil
+	})
 }
 
 func (h *CFDI40Handler) transformImpuestosConcepto(se xml.StartElement, decoder *xml.Decoder, concept *models.Concepto40) {
-	for {
-		token, err := decoder.Token()
-		if err != nil {
-			return
-		}
-
-		switch t := token.(type) {
-		case xml.StartElement:
-			switch t.Name.Local {
-			case "Traslado":
-				traslado := models.TrasladoConcepto{
-					Base:       helpers.GetOrDefault(getAttrValue(t, "Base"), h.config.EmptyChar, h.config.SafeNumerics),
-					Impuesto:   helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(t, "Impuesto", h.config.EmptyChar)),
-					TipoFactor: helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(t, "TipoFactor", h.config.EmptyChar)),
-					TasaOCuota: helpers.GetOrDefault(getAttrValue(t, "TasaOCuota"), h.config.EmptyChar, h.config.SafeNumerics),
-					Importe:    helpers.GetOrDefault(getAttrValue(t, "Importe"), h.config.EmptyChar, h.config.SafeNumerics),
-				}
-				concept.Traslados = append(concept.Traslados, traslado)
-
-			case "Retencion":
-				retencion := models.RetencionConcepto{
-					Impuesto: helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(t, "Impuesto", h.config.EmptyChar)),
-					Importe:  helpers.GetOrDefault(getAttrValue(t, "Importe"), h.config.EmptyChar, h.config.SafeNumerics),
-				}
-				concept.Retenciones = append(concept.Retenciones, retencion)
+	ProcessChildElements(decoder, "Impuestos", func(childSE xml.StartElement, childDecoder *xml.Decoder) error {
+		switch childSE.Name.Local {
+		case "Traslado":
+			traslado := models.TrasladoConcepto{
+				Base:       h.builder.ExtractNumeric(childSE, "Base"),
+				Impuesto:   h.builder.ExtractCompact(childSE, "Impuesto"),
+				TipoFactor: h.builder.ExtractCompact(childSE, "TipoFactor"),
+				TasaOCuota: h.builder.ExtractNumeric(childSE, "TasaOCuota"),
+				Importe:    h.builder.ExtractNumeric(childSE, "Importe"),
 			}
+			concept.Traslados = append(concept.Traslados, traslado)
 
-		case xml.EndElement:
-			if t.Name.Local == "Impuestos" {
-				return
+		case "Retencion":
+			retencion := models.RetencionConcepto{
+				Impuesto: h.builder.ExtractCompact(childSE, "Impuesto"),
+				Importe:  h.builder.ExtractNumeric(childSE, "Importe"),
 			}
+			concept.Retenciones = append(concept.Retenciones, retencion)
 		}
-	}
+		return nil
+	})
 }
 
 func (h *CFDI40Handler) transformCFDIsRelacionados(se xml.StartElement, decoder *xml.Decoder, data *models.CFDI40Data) {
-	tipoRelacion := getAttrValue(se, "TipoRelacion")
+	tipoRelacion := h.builder.ExtractString(se, "TipoRelacion")
 
-	for {
-		token, err := decoder.Token()
-		if err != nil {
-			return
-		}
-
-		switch t := token.(type) {
-		case xml.StartElement:
-			if t.Name.Local == "CfdiRelacionado" {
-				cfdiRel := models.CFDIRelacionado{
-					UUID:         strings.ToUpper(getAttrValue(t, "UUID")),
-					TipoRelacion: tipoRelacion,
-				}
-				data.CFDI40.CFDIsRelacionados = append(data.CFDI40.CFDIsRelacionados, cfdiRel)
+	ProcessChildElements(decoder, "CfdiRelacionados", func(childSE xml.StartElement, childDecoder *xml.Decoder) error {
+		if childSE.Name.Local == "CfdiRelacionado" {
+			cfdiRel := models.CFDIRelacionado{
+				UUID:         strings.ToUpper(h.builder.ExtractString(childSE, "UUID")),
+				TipoRelacion: tipoRelacion,
 			}
-
-		case xml.EndElement:
-			if t.Name.Local == "CfdiRelacionados" {
-				return
-			}
+			data.CFDI40.CFDIsRelacionados = append(data.CFDI40.CFDIsRelacionados, cfdiRel)
 		}
-	}
+		return nil
+	})
 }
 
 func (h *CFDI40Handler) transformComplemento(decoder *xml.Decoder, data *models.CFDI40Data, complementNames *[]string) {
-	for {
-		token, err := decoder.Token()
-		if err != nil {
-			return
+	ProcessChildElements(decoder, "Complemento", func(se xml.StartElement, childDecoder *xml.Decoder) error {
+		// Record complement name
+		*complementNames = append(*complementNames, se.Name.Local)
+
+		// Handle TFD11
+		if se.Name.Local == "TimbreFiscalDigital" && se.Name.Space == "http://www.sat.gob.mx/TimbreFiscalDigital" {
+			tfd := models.TFD11{
+				Version:          h.builder.ExtractString(se, "Version"),
+				NoCertificadoSAT: h.builder.ExtractString(se, "NoCertificadoSAT"),
+				UUID:             strings.ToUpper(h.builder.ExtractString(se, "UUID")),
+				FechaTimbrado:    h.builder.ExtractString(se, "FechaTimbrado"),
+				RfcProvCert:      h.builder.ExtractString(se, "RfcProvCertif"),
+				SelloCFD:         h.builder.ExtractCompact(se, "SelloCFD"),
+				SelloSAT:         h.builder.ExtractCompact(se, "SelloSAT"),
+			}
+			data.TFD11 = append(data.TFD11, tfd)
 		}
 
-		switch t := token.(type) {
-		case xml.StartElement:
-			// Record complement name
-			*complementNames = append(*complementNames, t.Name.Local)
-
-			// Handle TFD11
-			if t.Name.Local == "TimbreFiscalDigital" && t.Name.Space == "http://www.sat.gob.mx/TimbreFiscalDigital" {
-				tfd := models.TFD11{
-					Version:          getAttrValue(t, "Version"),
-					NoCertificadoSAT: getAttrValue(t, "NoCertificadoSAT"),
-					UUID:             strings.ToUpper(getAttrValue(t, "UUID")),
-					FechaTimbrado:    getAttrValue(t, "FechaTimbrado"),
-					RfcProvCert:      getAttrValue(t, "RfcProvCertif"),
-					SelloCFD:         helpers.CompactString(h.config.EscDelimiters, getAttrValue(t, "SelloCFD")),
-					SelloSAT:         helpers.CompactString(h.config.EscDelimiters, getAttrValue(t, "SelloSAT")),
-				}
-				data.TFD11 = append(data.TFD11, tfd)
-			}
-
-			// Handle Nomina 1.2
-			if h.config.ParseNomina12 && t.Name.Local == "Nomina" && t.Name.Space == "http://www.sat.gob.mx/nomina12" {
-				nomina12Handler := NewNomina12Handler(h.config)
-				nomina12Data, err := nomina12Handler.ProcessNomina12Element(t, decoder)
-				if err == nil && nomina12Data != nil {
-					data.Nomina12 = append(data.Nomina12, *nomina12Data)
-				}
-			}
-
-			// Handle Pagos 2.0
-			if h.config.ParsePagos20 && t.Name.Local == "Pagos" && t.Name.Space == "http://www.sat.gob.mx/Pagos20" {
-				pagosHandler := NewPagos20Handler(h.config)
-				pagosData, err := pagosHandler.ProcessPagosElement(t, decoder)
-				if err == nil && pagosData != nil {
-					data.Pagos20 = append(data.Pagos20, *pagosData)
-				}
-			}
-
-			// Handle VentaVehiculos 1.1
-			if h.config.ParseVentaVehiculos11 && t.Name.Local == "VentaVehiculos" && t.Name.Space == "http://www.sat.gob.mx/ventavehiculos" {
-				ventaVehiculos11Handler := NewVentaVehiculos11Handler(h.config)
-				ventaVehiculos11Data, err := ventaVehiculos11Handler.ProcessVentaVehiculosElement(t, decoder)
-				if err == nil && ventaVehiculos11Data != nil {
-					data.VentaVehiculos11 = append(data.VentaVehiculos11, *ventaVehiculos11Data)
-				}
-			}
-
-			// Handle ImpuestosLocales 1.0
-			if h.config.ParseImpuestosLocales && t.Name.Local == "ImpuestosLocales" && t.Name.Space == "http://www.sat.gob.mx/implocal" {
-				impLocHandler := NewImpuestosLocales10Handler(h.config)
-				// Procesar el elemento usando el decoder existente del CFDI
-				impLocData, err := impLocHandler.ProcessImpuestosLocalesElement(t, decoder)
-				// Agregar los datos parseados si no hubo errores
-				if err == nil && impLocData != nil {
-					data.ImpuestosLocales = append(data.ImpuestosLocales, *impLocData)
-				}
-			}
-
-		case xml.EndElement:
-			if t.Name.Local == "Complemento" {
-				return
+		// Handle Nomina 1.2
+		if h.config.ParseNomina12 && se.Name.Local == "Nomina" && se.Name.Space == "http://www.sat.gob.mx/nomina12" {
+			nomina12Handler := NewNomina12Handler(h.config)
+			nomina12Data, err := nomina12Handler.ProcessNomina12Element(se, childDecoder)
+			if err == nil && nomina12Data != nil {
+				data.Nomina12 = append(data.Nomina12, *nomina12Data)
 			}
 		}
-	}
+
+		// Handle Pagos 2.0
+		if h.config.ParsePagos20 && se.Name.Local == "Pagos" && se.Name.Space == "http://www.sat.gob.mx/Pagos20" {
+			pagosHandler := NewPagos20Handler(h.config)
+			pagosData, err := pagosHandler.ProcessPagosElement(se, childDecoder)
+			if err == nil && pagosData != nil {
+				data.Pagos20 = append(data.Pagos20, *pagosData)
+			}
+		}
+
+		// Handle VentaVehiculos 1.1
+		if h.config.ParseVentaVehiculos11 && se.Name.Local == "VentaVehiculos" && se.Name.Space == "http://www.sat.gob.mx/ventavehiculos" {
+			ventaVehiculos11Handler := NewVentaVehiculos11Handler(h.config)
+			ventaVehiculos11Data, err := ventaVehiculos11Handler.ProcessVentaVehiculosElement(se, childDecoder)
+			if err == nil && ventaVehiculos11Data != nil {
+				data.VentaVehiculos11 = append(data.VentaVehiculos11, *ventaVehiculos11Data)
+			}
+		}
+
+		// Handle ImpuestosLocales 1.0
+		if h.config.ParseImpuestosLocales && se.Name.Local == "ImpuestosLocales" && se.Name.Space == "http://www.sat.gob.mx/implocal" {
+			impLocHandler := NewImpuestosLocales10Handler(h.config)
+			impLocData, err := impLocHandler.ProcessImpuestosLocalesElement(se, childDecoder)
+			if err == nil && impLocData != nil {
+				data.ImpuestosLocales = append(data.ImpuestosLocales, *impLocData)
+			}
+		}
+		return nil
+	})
 }
 
 func (h *CFDI40Handler) transformAddenda(decoder *xml.Decoder, data *models.CFDI40Data) {
 	var addendaNames []string
 
-	for {
-		token, err := decoder.Token()
-		if err != nil {
-			return
-		}
+	ProcessChildElements(decoder, "Addenda", func(se xml.StartElement, childDecoder *xml.Decoder) error {
+		addendaNames = append(addendaNames, se.Name.Local)
+		return nil
+	})
 
-		switch t := token.(type) {
-		case xml.StartElement:
-			addendaNames = append(addendaNames, t.Name.Local)
-
-		case xml.EndElement:
-			if t.Name.Local == "Addenda" {
-				if len(addendaNames) > 0 {
-					data.CFDI40.Addendas = strings.Join(addendaNames, " ")
-				}
-				return
-			}
-		}
+	if len(addendaNames) > 0 {
+		data.CFDI40.Addendas = strings.Join(addendaNames, " ")
 	}
 }

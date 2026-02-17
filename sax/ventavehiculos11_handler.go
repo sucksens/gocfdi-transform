@@ -10,123 +10,90 @@ import (
 )
 
 type VentaVehiculos11Handler struct {
-	config HandlerConfig
+	*BaseHandler
+	builder *ModelBuilder
 }
 
 func NewVentaVehiculos11Handler(config HandlerConfig) *VentaVehiculos11Handler {
-	return &VentaVehiculos11Handler{config: config}
+	return &VentaVehiculos11Handler{
+		BaseHandler: NewBaseHandler(config),
+		builder:     NewModelBuilder(config),
+	}
 }
 
+// ProcessVentaVehiculosElement procesa el elemento VentaVehiculos
 func (h *VentaVehiculos11Handler) ProcessVentaVehiculosElement(se xml.StartElement, decoder *xml.Decoder) (*models.VentaVehiculos11Data, error) {
-	version := strings.TrimSpace(getAttrValue(se, "Version"))
-	if version != "1.1" {
-		return nil, errors.New("incorrect type of Venta Vehiculos, this handler only supports Venta Vehiculos version 1.1")
+	// Validar version
+	if err := h.ValidateVersion(se, "1.1"); err != nil {
+		return nil, errors.New("incorrect type of VentaVehiculos, this handler only supports VentaVehiculos version 1.1")
 	}
+	// Crear estructura de datos
 	data := &models.VentaVehiculos11Data{
-		Version:             version,
-		ClaveVehicular:      getAttrValue(se, "ClaveVehicular"),
-		Niv:                 getAttrValue(se, "Niv"),
+		Version:             "1.1",
+		ClaveVehicular:      h.builder.ExtractString(se, "ClaveVehicular"),
+		Niv:                 h.builder.ExtractString(se, "Niv"),
 		InformacionAduanera: []models.InformacionAduanera{},
 		Partes:              []models.Parte{},
 	}
 
-	for {
-		token, err := decoder.Token()
-		if err == io.EOF {
-			break
+	err := ProcessChildElements(decoder, "VentaVehiculos", func(childSE xml.StartElement, chilDecoder *xml.Decoder) error {
+		switch childSE.Name.Local {
+		case "InformacionAduanera":
+			data.InformacionAduanera = append(data.InformacionAduanera, h.transformInformacionAduanera(childSE))
+		case "Parte":
+			data.Partes = append(data.Partes, h.transformParte(childSE, chilDecoder))
 		}
-		if err != nil {
-			return nil, err
-		}
-		switch t := token.(type) {
-		case xml.StartElement:
-			switch t.Name.Local {
-			case "InformacionAduanera":
-				data.InformacionAduanera = append(data.InformacionAduanera, h.transformInformacionAduanera(t, decoder))
-			case "Parte":
-				data.Partes = append(data.Partes, h.transformParte(t, decoder))
-			}
-		case xml.EndElement:
-			if t.Name.Local == "VentaVehiculos" {
-				return data, nil
-			}
-		}
-	}
-	return data, nil
+		return nil
+	})
+
+	return data, err
 }
 
-func (h *VentaVehiculos11Handler) transformBytes(xmlBytes []byte) (*models.VentaVehiculos11Data, error) {
-	return h.transformString(string(xmlBytes))
-}
-
-func (h *VentaVehiculos11Handler) transformString(xmlString string) (*models.VentaVehiculos11Data, error) {
-	data := &models.VentaVehiculos11Data{
-		InformacionAduanera: []models.InformacionAduanera{},
-		Partes:              []models.Parte{},
-	}
-
+// TransformFromString parses a Venta Vehiculos 1.1 XML string.
+func (h *VentaVehiculos11Handler) TransformFromString(xmlString string) (*models.VentaVehiculos11Data, error) {
+	//Crear el decoder XML para parsear la cadena
 	decoder := xml.NewDecoder(strings.NewReader(xmlString))
-
-	for {
-		token, err := decoder.Token()
+	// Buscar el elemento VentaVehiculos
+	se, err := FindElement(decoder, "VentaVehiculos")
+	if err != nil {
 		if err == io.EOF {
-			break
+			return &models.VentaVehiculos11Data{
+				InformacionAduanera: []models.InformacionAduanera{},
+				Partes:              []models.Parte{},
+			}, nil
 		}
-		if err != nil {
-			return nil, err
-		}
-
-		switch se := token.(type) {
-		case xml.StartElement:
-			switch se.Name.Local {
-			case "InformacionAduanera":
-				data.InformacionAduanera = append(data.InformacionAduanera, h.transformInformacionAduanera(se, decoder))
-			case "Parte":
-				data.Partes = append(data.Partes, h.transformParte(se, decoder))
-			}
-		case xml.EndElement:
-			if se.Name.Local == "VentaVehiculos" {
-				return data, nil
-			}
-		}
+		return nil, err
 	}
-	return data, nil
+	return h.ProcessVentaVehiculosElement(*se, decoder)
 }
 
-func (h *VentaVehiculos11Handler) transformInformacionAduanera(se xml.StartElement, decoder *xml.Decoder) models.InformacionAduanera {
+// transformInformacionAduanera transforma el elemento InformacionAduanera
+func (h *VentaVehiculos11Handler) transformInformacionAduanera(se xml.StartElement) models.InformacionAduanera {
 	return models.InformacionAduanera{
-		Numero: getAttrValue(se, "Numero"),
-		Fecha:  getAttrValue(se, "Fecha"),
-		Aduana: getAttrValue(se, "Aduana"),
+		Numero: h.builder.ExtractString(se, "Numero"),
+		Fecha:  h.builder.ExtractString(se, "Fecha"),
+		Aduana: h.builder.ExtractString(se, "Aduana"),
 	}
 }
 
+// transformParte transforma el elemento Parte
 func (h *VentaVehiculos11Handler) transformParte(se xml.StartElement, decoder *xml.Decoder) models.Parte {
 	parte := models.Parte{
-		NoIdentificacion:    getAttrValue(se, "NoIdentificacion"),
-		Cantidad:            getAttrValue(se, "Cantidad"),
-		Unidad:              getAttrValue(se, "Unidad"),
-		Descripcion:         getAttrValue(se, "Descripcion"),
-		ValorUnitario:       getAttrValue(se, "ValorUnitario"),
-		Importe:             getAttrValue(se, "Importe"),
+		NoIdentificacion:    h.builder.ExtractString(se, "NoIdentificacion"),
+		Cantidad:            h.builder.ExtractString(se, "Cantidad"),
+		Unidad:              h.builder.ExtractString(se, "Unidad"),
+		Descripcion:         h.builder.ExtractString(se, "Descripcion"),
+		ValorUnitario:       h.builder.ExtractString(se, "ValorUnitario"),
+		Importe:             h.builder.ExtractString(se, "Importe"),
 		InformacionAduanera: []models.InformacionAduanera{},
 	}
 
-	for {
-		token, err := decoder.Token()
-		if err != nil {
-			return parte
+	ProcessChildElements(decoder, "Parte", func(childSE xml.StartElement, childDecoder *xml.Decoder) error {
+		if childSE.Name.Local == "InformacionAduanera" {
+			parte.InformacionAduanera = append(parte.InformacionAduanera, h.transformInformacionAduanera(childSE))
 		}
+		return nil
+	})
 
-		switch t := token.(type) {
-		case xml.StartElement:
-			if t.Name.Local == "InformacionAduanera" {
-				parte.InformacionAduanera = append(parte.InformacionAduanera, h.transformInformacionAduanera(t, decoder))
-			}
-		case xml.EndElement:
-			if t.Name.Local == "Parte" {
-				return parte
-			}
-		}
-	}
+	return parte
 }
