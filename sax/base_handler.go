@@ -4,8 +4,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-
-	"github.com/sucksens/gocfdi-transform/helpers"
 )
 
 // BaseHandler dara las funcionalidades comunes para todos los handlers
@@ -72,25 +70,4 @@ func (h *BaseHandler) ValidateVersion(se xml.StartElement, expectedVersion strin
 		return fmt.Errorf("incorrect version, expected %s, got %s", expectedVersion, version)
 	}
 	return nil
-}
-
-// Metodos de ayuda para extraccion de atributos con configuracion
-// GetAttrCompact obtiene un atributo y lo compacta
-func (h *BaseHandler) GetAttrCompact(se xml.StartElement, attrName string) string {
-	return helpers.CompactString(h.config.EscDelimiters, getAttrValueOrDefault(se, attrName, h.config.EmptyChar))
-}
-
-// GetAttrDefault obtiene un atributo y lo reemplaza por el caracter vacio si es nulo
-func (h *BaseHandler) GetAttrDefault(se xml.StartElement, attrName string) string {
-	return helpers.GetOrDefault(getAttrValue(se, attrName), h.config.EmptyChar, h.config.SafeNumerics)
-}
-
-// GetAttrDefaultOne obtiene un atributo y lo reemplaza por el caracter vacio si es nulo o uno
-func (h *BaseHandler) GetAttrDefaultOne(se xml.StartElement, attrName string) string {
-	return helpers.GetOrDefaultOne(getAttrValue(se, attrName), h.config.EmptyChar, h.config.SafeNumerics)
-}
-
-// GetAttr obtiene un atributo sin ningun procesamiento
-func (h *BaseHandler) GetAttr(se xml.StartElement, attrName string) string {
-	return getAttrValue(se, attrName)
 }
