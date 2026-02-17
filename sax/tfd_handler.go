@@ -48,13 +48,12 @@ func (h *TFD11Handler) TransformFromString(xmlStr string) (*models.TFD11, error)
 }
 
 func (h *TFD11Handler) transformTFD(se xml.StartElement) (*models.TFD11, error) {
-	version := getAttrValue(se, "Version")
-	if version != "1.1" {
+	if err := h.ValidateVersion(se, "1.1"); err != nil {
 		return nil, errors.New("incorrect type of TFD, this handler only supports TFD version 1.1")
 	}
 
 	return &models.TFD11{
-		Version:          version,
+		Version:          "1.1",
 		NoCertificadoSAT: h.builder.ExtractString(se, "NoCertificadoSAT"),
 		UUID:             h.builder.ExtractUpper(se, "UUID"),
 		FechaTimbrado:    h.builder.ExtractString(se, "FechaTimbrado"),

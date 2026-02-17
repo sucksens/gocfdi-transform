@@ -2,6 +2,7 @@ package sax
 
 import (
 	"encoding/xml"
+	"errors"
 	"io"
 	"strings"
 
@@ -24,7 +25,7 @@ func NewVentaVehiculos11Handler(config HandlerConfig) *VentaVehiculos11Handler {
 func (h *VentaVehiculos11Handler) ProcessVentaVehiculosElement(se xml.StartElement, decoder *xml.Decoder) (*models.VentaVehiculos11Data, error) {
 	// Validar version
 	if err := h.ValidateVersion(se, "1.1"); err != nil {
-		return nil, err
+		return nil, errors.New("incorrect type of VentaVehiculos, this handler only supports VentaVehiculos version 1.1")
 	}
 	// Crear estructura de datos
 	data := &models.VentaVehiculos11Data{
@@ -49,7 +50,7 @@ func (h *VentaVehiculos11Handler) ProcessVentaVehiculosElement(se xml.StartEleme
 }
 
 // TransformFromString parses a Venta Vehiculos 1.1 XML string.
-func (h *VentaVehiculos11Handler) TransformString(xmlString string) (*models.VentaVehiculos11Data, error) {
+func (h *VentaVehiculos11Handler) TransformFromString(xmlString string) (*models.VentaVehiculos11Data, error) {
 	//Crear el decoder XML para parsear la cadena
 	decoder := xml.NewDecoder(strings.NewReader(xmlString))
 	// Buscar el elemento VentaVehiculos
