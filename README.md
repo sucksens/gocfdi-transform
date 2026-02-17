@@ -1,5 +1,9 @@
 # gocfdi-transform
 
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat-square&logo=go)](https://golang.org/)
+[![Version](https://img.shields.io/github/v/tag/sucksens/gocfdi-transform?style=flat-square)](https://github.com/sucksens/gocfdi-transform/releases)
+[![License](https://img.shields.io/github/license/sucksens/gocfdi-transform?style=flat-square)](LICENSE)
+
 Package `gocfdi_transform` proporciona handlers para transformar un CFDI (Comprobante Fiscal Digital por Internet) en una estructura de datos fácil de manejar en Go.
 
 Este proyecto fue inspirado por [pycfdi-transform](https://github.com/swsapien/pycfdi-transform), con el objetivo de portar su funcionalidad al ecosistema de Go.
